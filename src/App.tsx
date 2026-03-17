@@ -8,13 +8,16 @@ import Header from './components/Header';
 import SubmitForm from './components/SubmitForm';
 import Dashboard from './components/Dashboard';
 import { startAgentLoop } from './agent/rewardAgent';
+import { supabaseConfigured } from './lib/supabase';
+import { AlertTriangle, ExternalLink } from 'lucide-react';
 
 function App() {
   // ── Start the reward agent loop when the app mounts ─────────────────────────
+  // Only run if Supabase is configured; otherwise the DB calls will fail silently.
   useEffect(() => {
-    // Check every 30 seconds for eligible submissions and reward them automatically.
+    if (!supabaseConfigured) return;
     const stopAgent = startAgentLoop(30_000);
-    return stopAgent; // cleanup on unmount
+    return stopAgent;
   }, []);
 
   return (
@@ -33,6 +36,31 @@ function App() {
       />
 
       <Header />
+
+      {/* ── Setup required banner ── */}
+      {!supabaseConfigured && (
+        <div className="max-w-5xl mx-auto px-4 mt-6">
+          <div className="flex items-start gap-3 px-5 py-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-sm">
+            <AlertTriangle className="w-5 h-5 flex-shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="font-semibold">Supabase credentials not configured</p>
+              <p className="text-amber-400/70">
+                Open your <code className="bg-black/30 px-1 py-0.5 rounded text-amber-300">.env</code> file
+                and fill in your <strong>VITE_SUPABASE_URL</strong> and <strong>VITE_SUPABASE_ANON_KEY</strong>.
+                {' '}Then restart the dev server.
+              </p>
+              <a
+                href="https://supabase.com/dashboard"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 mt-1 text-amber-400 hover:text-amber-300 underline underline-offset-2 transition-colors"
+              >
+                Open Supabase Dashboard <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="px-4 py-12 space-y-16">
 
