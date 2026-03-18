@@ -11,6 +11,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.99.2",
+    "@tetherto/wdk": "^1.0.0-beta.6",
+    "@tetherto/wdk-wallet-evm": "^1.0.0-beta.8",
     "groq-sdk": "^1.1.1",
     "lucide-react": "^0.577.0",
     "react": "^19.2.4",
