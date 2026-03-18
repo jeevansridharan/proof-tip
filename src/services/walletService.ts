@@ -2,7 +2,7 @@
 // Tether Wallet Development Kit (WDK) integration for sending USDT.
 // This module provides a non-custodial wallet manager to send real transactions.
 
-import { WalletManagerEvm } from '@tetherto/wdk-wallet-evm';
+import WalletManagerEvm from '@tetherto/wdk-wallet-evm';
 
 // --- ENVIRONMENT CONFIGURATION ---
 const MNEMONIC = import.meta.env.VITE_WDK_MNEMONIC || process.env.VITE_WDK_MNEMONIC;
