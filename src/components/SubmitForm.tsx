@@ -4,10 +4,12 @@
 import React, { useState, useRef } from 'react';
 import {
     Lightbulb, Wallet, FileText, Send, CheckCircle, AlertCircle,
-    Sparkles, ChevronRight, Info, Zap,
+    Sparkles, ChevronRight, Info, Zap, RefreshCw, Copy, Check, ShieldCheck
 } from 'lucide-react';
 import { createSubmission } from '../services/submissionService';
+import { createNewUserWallet } from '../services/walletService';
 import type { SubmitFormData } from '../types';
+import toast from 'react-hot-toast';
 
 interface FieldError {
     title?: string;
@@ -40,6 +42,8 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
     const [success, setSuccess] = useState(false);
     const [apiError, setApiError] = useState<string | null>(null);
     const [activeTip] = useState(() => Math.floor(Math.random() * tips.length));
+    const [newWallet, setNewWallet] = useState<{ address: string; mnemonic: string } | null>(null);
+    const [generating, setGenerating] = useState(false);
     const descRef = useRef<HTMLTextAreaElement>(null);
 
     // ── Validation ────────────────────────────────────────────────────────────
@@ -88,6 +92,27 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
             setForm(prev => ({ ...prev, [field]: e.target.value }));
             if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
         };
+    }
+
+    async function handleGenerateWallet() {
+        setGenerating(true);
+        try {
+            const w = await createNewUserWallet();
+            setNewWallet({ address: w.address, mnemonic: w.mnemonic });
+            setForm(prev => ({ ...prev, wallet_address: w.address }));
+            setErrors(prev => ({ ...prev, wallet_address: undefined }));
+            toast.success('Generated New Wallet!', { icon: '🔑' });
+        } catch (err) {
+            console.error('Wallet generation failed:', err);
+            toast.error('Failed to generate wallet');
+        } finally {
+            setGenerating(false);
+        }
+    }
+
+    function copyToClipboard(text: string, label: string) {
+        navigator.clipboard.writeText(text);
+        toast.success(`${label} copied!`, { duration: 1500 });
     }
 
     // Character limits / progress
@@ -264,11 +289,22 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
 
                     {/* ── Wallet ─────────────────────────────────────── */}
                     <div>
-                        <label htmlFor="wallet" className="flex items-center gap-1.5 text-sm font-semibold text-white/60 mb-2">
-                            <Wallet className="w-3.5 h-3.5 text-cyan-400" />
-                            Wallet Address
-                            <span className="text-red-400 ml-0.5">*</span>
-                        </label>
+                        <div className="flex items-center justify-between mb-2">
+                            <label htmlFor="wallet" className="flex items-center gap-1.5 text-sm font-semibold text-white/60">
+                                <Wallet className="w-3.5 h-3.5 text-cyan-400" />
+                                Wallet Address
+                                <span className="text-red-400 ml-0.5">*</span>
+                            </label>
+                            <button
+                                type="button"
+                                onClick={handleGenerateWallet}
+                                disabled={generating || loading}
+                                className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-indigo-500/10 hover:bg-indigo-500/20 text-indigo-400 text-[10px] font-bold border border-indigo-500/20 transition-all uppercase tracking-wide disabled:opacity-50"
+                            >
+                                <RefreshCw className={`w-2.5 h-2.5 ${generating ? 'animate-spin' : ''}`} />
+                                {generating ? 'Creating...' : 'Create New Wallet'}
+                            </button>
+                        </div>
                         <input
                             id="wallet"
                             type="text"
@@ -279,6 +315,40 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
                             disabled={loading}
                             aria-describedby={errors.wallet_address ? 'wallet-error' : undefined}
                         />
+
+                        {/* ── Generated Wallet Secrets ─────────────────── */}
+                        {newWallet && (
+                            <div className="mt-3 p-4 rounded-xl bg-amber-500/[0.05] border border-amber-500/20 fade-in-up">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <ShieldCheck className="w-3.5 h-3.5 text-amber-500" />
+                                    <span className="text-xs font-black text-amber-500 uppercase tracking-widest">New Wallet Recovery Phrase</span>
+                                </div>
+                                <p className="text-[11px] text-white/40 mb-3 leading-relaxed">
+                                    Save these words safely! This is your only access to high-trust rewards.
+                                    The agent will send USDT rewards to the address above.
+                                </p>
+                                <div className="relative group/mnemonic">
+                                    <div className="p-3 bg-black/40 rounded-lg text-xs font-mono text-amber-400/80 leading-relaxed border border-white/[0.05] break-words pr-10">
+                                        {newWallet.mnemonic}
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => copyToClipboard(newWallet.mnemonic, 'Recovery Phrase')}
+                                        className="absolute top-2 right-2 p-1.5 rounded-md bg-white/10 hover:bg-white/20 text-white/50 transition-colors"
+                                    >
+                                        <Copy className="w-3.5 h-3.5" />
+                                    </button>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setNewWallet(null)}
+                                    className="mt-3 text-[10px] font-bold text-amber-500/60 hover:text-amber-500 uppercase flex items-center gap-1 transition-all"
+                                >
+                                    <Check className="w-3 h-3" /> I have saved it
+                                </button>
+                            </div>
+                        )}
+
                         {errors.wallet_address ? (
                             <p id="wallet-error" className="mt-1.5 text-xs text-red-400 flex items-center gap-1">
                                 <AlertCircle className="w-3 h-3" /> {errors.wallet_address}

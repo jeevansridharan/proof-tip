@@ -3,6 +3,7 @@
 // This module provides a non-custodial wallet manager to send real transactions.
 
 import WalletManagerEvm from '@tetherto/wdk-wallet-evm';
+import { Wallet } from 'ethers';
 
 // --- ENVIRONMENT CONFIGURATION ---
 const MNEMONIC = import.meta.env.VITE_WDK_MNEMONIC || process.env.VITE_WDK_MNEMONIC;
@@ -88,23 +89,36 @@ export async function sendUSDT(params: WalletSendParams): Promise<WalletSendResu
         });
 
         console.log(`   ✅ Transaction Hash: ${transferResult.hash}`);
-        return { 
-            success: true, 
-            txHash: transferResult.hash 
+        return {
+            success: true,
+            txHash: transferResult.hash
         };
 
     } catch (err: any) {
         console.error('   ❌ WDK Transaction Failed:', err.message || err);
-        return { 
-            success: false, 
-            error: err.message || 'Unknown WDK error' 
+        return {
+            success: false,
+            error: err.message || 'Unknown WDK error'
         };
     }
+}
+
+/**
+ * Generates a completely new, secure EVM wallet with a 12-word mnemonic.
+ */
+export async function createNewUserWallet() {
+    const w = Wallet.createRandom();
+    return {
+        address: w.address,
+        mnemonic: w.mnemonic?.phrase || '',
+        privateKey: w.privateKey,
+    };
 }
 
 /**
  * Legacy compatibility object (for existing rewardAgent references)
  */
 export const wallet = {
-    send: sendUSDT
+    send: sendUSDT,
+    generate: createNewUserWallet
 };
