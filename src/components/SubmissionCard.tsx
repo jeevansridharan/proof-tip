@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import {
     ThumbsUp, CheckCircle, XCircle, Brain, Wallet, Trophy, Clock,
-    ChevronDown, ChevronUp, Sparkles, TrendingUp, Shield, AlertTriangle,
+    ChevronDown, ChevronUp, Sparkles, TrendingUp, Shield, AlertTriangle, ExternalLink
 } from 'lucide-react';
 import type { Submission } from '../types';
 import { upvoteSubmission, setApproval, setAIScore } from '../services/submissionService';
@@ -57,25 +57,25 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
         finally { setEvaluating(false); }
     }
 
-    // ── Computed metrics ───────────────────────────────────────────────────────
-    // Trust/risk are computed from single submission for display
     const mockHistory = [submission];
     const trustScore = calculateTrustScore(mockHistory);
     const riskScore = calculateRiskScore(mockHistory, trustScore);
     const rewardAmount = submission.ai_score !== null
         ? calculateReward(submission, trustScore)
-        : null;
+        : 0;
 
     const isEligible = submission.upvotes >= 5 && submission.isApproved
         && (submission.ai_score ?? 0) >= 7 && !submission.reward_sent;
 
-    function scoreColor(score: number) {
+    function scoreColor(score: number | null) {
+        if (score === null) return 'text-white/20';
         if (score >= 8) return 'text-emerald-400';
         if (score >= 6) return 'text-yellow-400';
         return 'text-red-400';
     }
 
-    function scoreGradient(score: number) {
+    function scoreGradient(score: number | null) {
+        if (score === null) return 'from-white/10 to-white/5';
         if (score >= 8) return 'from-emerald-500 to-cyan-500';
         if (score >= 6) return 'from-yellow-500 to-amber-500';
         return 'from-red-500 to-pink-500';
@@ -84,35 +84,57 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
     const riskLabel = riskScore < 0.3 ? 'Low' : riskScore < 0.6 ? 'Medium' : 'High';
     const riskColor = riskScore < 0.3 ? 'text-emerald-400' : riskScore < 0.6 ? 'text-amber-400' : 'text-red-400';
 
-    // Short wallet display
     const shortWallet = submission.wallet_address.length > 16
         ? `${submission.wallet_address.slice(0, 8)}…${submission.wallet_address.slice(-6)}`
         : submission.wallet_address;
 
     return (
-        <article className="glass-card p-5 hover-lift hover:border-indigo-500/20 transition-all duration-300 group relative overflow-hidden">
-            {/* Reward glow overlay */}
+        <article className="glass-card p-5 hover-lift hover:border-indigo-500/20 transition-all duration-300 group relative overflow-hidden text-left">
             {submission.reward_sent && (
                 <div className="absolute inset-0 pointer-events-none rounded-[1.25rem] border border-emerald-500/30 bg-gradient-to-br from-emerald-500/[0.04] to-transparent" />
             )}
 
-            {/* ── Top row ──────────────────────────────────────────────── */}
-            <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start justify-between gap-3 relative z-10">
                 <div className="flex-1 min-w-0">
                     <h3 className="font-bold text-white text-base leading-snug group-hover:text-indigo-300 transition-colors line-clamp-1">
                         {submission.title}
                     </h3>
-                    <div className="flex items-center gap-1.5 mt-1">
-                        <Wallet className="w-2.5 h-2.5 text-white/20 flex-shrink-0" />
-                        <span className="text-[11px] text-white/25 font-mono">{shortWallet}</span>
+                    <div className="flex items-center gap-3 mt-1">
+                        <div className="flex items-center gap-1.5 font-mono text-[11px] text-white/25">
+                            <Wallet className="w-2.5 h-2.5 text-white/20" />
+                            <span>{shortWallet}</span>
+                        </div>
+                        {submission.source_url && (
+                            <a
+                                href={submission.source_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[10px] font-bold hover:bg-indigo-500/20 transition-all"
+                            >
+                                <ExternalLink className="w-2.5 h-2.5" />
+                                Source Code
+                            </a>
+                        )}
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
                     {submission.reward_sent ? (
-                        <span className="badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                            <Trophy className="w-2.5 h-2.5" /> Rewarded
-                        </span>
+                        <div className="flex flex-col items-end gap-1.5">
+                            <span className="badge bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                <Trophy className="w-2.5 h-2.5" /> Rewarded
+                            </span>
+                            {submission.tx_hash && (
+                                <a
+                                    href={`https://etherscan.io/tx/${submission.tx_hash}`}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[10px] text-emerald-500/60 hover:text-emerald-400 underline underline-offset-2 flex items-center gap-1"
+                                >
+                                    Proof <TrendingUp className="w-2.5 h-2.5" />
+                                </a>
+                            )}
+                        </div>
                     ) : isEligible ? (
                         <span className="badge bg-indigo-500/15 text-indigo-400 border border-indigo-500/30 animate-pulse">
                             <Clock className="w-2.5 h-2.5" /> Pending
@@ -121,8 +143,7 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                 </div>
             </div>
 
-            {/* ── Description ─────────────────────────────────────────── */}
-            <div className="mt-3">
+            <div className="mt-3 relative z-10">
                 <p className={`text-sm text-white/45 leading-relaxed ${expanded ? '' : 'line-clamp-2'}`}>
                     {submission.description}
                 </p>
@@ -136,10 +157,7 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                 )}
             </div>
 
-            {/* ── Metrics row ──────────────────────────────────────────── */}
-            <div className="flex flex-wrap items-center gap-2 mt-4">
-
-                {/* Upvote */}
+            <div className="flex flex-wrap items-center gap-2 mt-4 relative z-10">
                 <button
                     id={`upvote-${submission.id}`}
                     onClick={handleUpvote}
@@ -156,7 +174,6 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                     {submission.upvotes >= 5 && <span className="text-xs text-emerald-400">✓</span>}
                 </button>
 
-                {/* Approval */}
                 <span className={`badge ${submission.isApproved
                         ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/25'
                         : 'bg-white/[0.04] text-white/30 border border-white/[0.08]'
@@ -164,22 +181,14 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                     {submission.isApproved ? <><CheckCircle className="w-2.5 h-2.5" /> Approved</> : 'Awaiting review'}
                 </span>
 
-                {/* AI Score */}
-                {submission.ai_score !== null ? (
-                    <span className={`badge bg-white/[0.04] border border-white/[0.08] ${scoreColor(submission.ai_score)}`}>
-                        <Brain className="w-2.5 h-2.5" />
-                        {submission.ai_score}/10
-                        {rewardAmount !== null && rewardAmount > 0 && (
-                            <span className="ml-1 text-white/30">· {rewardAmount} USDT</span>
-                        )}
-                    </span>
-                ) : (
-                    <span className="badge bg-white/[0.04] text-white/20 border border-white/[0.06]">
-                        <Brain className="w-2.5 h-2.5" /> Not scored
-                    </span>
-                )}
+                <span className={`badge bg-white/[0.04] border border-white/[0.08] ${scoreColor(submission.ai_score)}`}>
+                    <Brain className="w-2.5 h-2.5" />
+                    {submission.ai_score !== null ? `${submission.ai_score}/10` : 'Not scored'}
+                    {rewardAmount > 0 && (
+                        <span className="ml-1 text-white/30">· {rewardAmount} USDT</span>
+                    )}
+                </span>
 
-                {/* Risk indicator */}
                 <span className={`badge bg-white/[0.04] border border-white/[0.06] ${riskColor} text-[10px]`}>
                     {riskScore < 0.3
                         ? <Shield className="w-2.5 h-2.5" />
@@ -188,25 +197,23 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                 </span>
             </div>
 
-            {/* ── Score bar (if scored) ──────────────────────────────── */}
-            {submission.ai_score !== null && (
-                <div className="mt-3">
-                    <div className="flex items-center justify-between mb-1">
-                        <span className="text-[10px] text-white/25 font-medium">AI Quality Score</span>
-                        <span className={`text-[11px] font-bold ${scoreColor(submission.ai_score)}`}>{submission.ai_score}/10</span>
-                    </div>
-                    <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
-                        <div
-                            className={`h-full rounded-full bg-gradient-to-r ${scoreGradient(submission.ai_score)} transition-all duration-1000`}
-                            style={{ width: `${(submission.ai_score / 10) * 100}%` }}
-                        />
-                    </div>
+            <div className="mt-3 relative z-10">
+                <div className="flex items-center justify-between mb-1">
+                    <span className="text-[10px] text-white/25 font-bold uppercase tracking-wider">AI Quality Assessment</span>
+                    <span className={`text-[11px] font-bold ${scoreColor(submission.ai_score)}`}>
+                        {submission.ai_score !== null ? `${submission.ai_score}/10` : '—'}
+                    </span>
                 </div>
-            )}
+                <div className="h-1 rounded-full bg-white/[0.05] overflow-hidden">
+                    <div
+                        className={`h-full rounded-full bg-gradient-to-r ${scoreGradient(submission.ai_score)} transition-all duration-1000`}
+                        style={{ width: `${submission.ai_score !== null ? (submission.ai_score / 10) * 100 : 0}%` }}
+                    />
+                </div>
+            </div>
 
-            {/* ── Admin controls ────────────────────────────────────── */}
             {isAdmin && (
-                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.05]">
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-white/[0.05] relative z-10">
                     {!submission.isApproved ? (
                         <button
                             id={`approve-${submission.id}`}
@@ -241,8 +248,7 @@ const SubmissionCard: React.FC<Props> = ({ submission, isAdmin, onUpdate }) => {
                         </button>
                     )}
 
-                    {/* Reward preview */}
-                    {rewardAmount !== null && rewardAmount > 0 && (
+                    {rewardAmount > 0 && !submission.reward_sent && (
                         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold ml-auto">
                             <TrendingUp className="w-3 h-3" />
                             Est. {rewardAmount} USDT

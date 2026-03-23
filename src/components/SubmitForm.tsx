@@ -13,6 +13,7 @@ interface FieldError {
     title?: string;
     description?: string;
     wallet_address?: string;
+    source_url?: string;
 }
 
 interface Props {
@@ -32,6 +33,7 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
         title: '',
         description: '',
         wallet_address: '',
+        source_url: '',
     });
     const [errors, setErrors] = useState<FieldError>({});
     const [loading, setLoading] = useState(false);
@@ -68,7 +70,7 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
             const created = await createSubmission(form);
             console.log('✅ Submission created:', created);
             setSuccess(true);
-            setForm({ title: '', description: '', wallet_address: '' });
+            setForm({ title: '', description: '', wallet_address: '', source_url: '' });
             setErrors({});
             onSuccess?.();
             setTimeout(() => setSuccess(false), 5000);
@@ -240,6 +242,26 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
                         </div>
                     </div>
 
+                    {/* ── Source Link ───────────────────────────────────── */}
+                    <div>
+                        <label htmlFor="source" className="flex items-center gap-1.5 text-sm font-semibold text-white/60 mb-2">
+                            <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+                            GitHub / Project Link (Optional)
+                        </label>
+                        <input
+                            id="source"
+                            type="url"
+                            value={form.source_url}
+                            onChange={handleChange('source_url')}
+                            placeholder="https://github.com/..."
+                            className="input-field"
+                            disabled={loading}
+                        />
+                        <p className="mt-1.5 text-[10px] text-white/20">
+                            🔗 Paste a link to your source code for the community and AI to review.
+                        </p>
+                    </div>
+
                     {/* ── Wallet ─────────────────────────────────────── */}
                     <div>
                         <label htmlFor="wallet" className="flex items-center gap-1.5 text-sm font-semibold text-white/60 mb-2">
@@ -302,11 +324,11 @@ const SubmitForm: React.FC<Props> = ({ onSuccess }) => {
                 </div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                     {[
-                        { step: '1', label: 'Community votes', color: 'text-indigo-400', icon: '🗳️' },
-                        { step: '2', label: 'Mentor reviews', color: 'text-violet-400', icon: '🤝' },
-                        { step: '3', label: 'AI evaluates', color: 'text-cyan-400', icon: '🤖' },
-                        { step: '4', label: 'USDT sent', color: 'text-emerald-400', icon: '💰' },
-                    ].map(({ step, label, color, icon }) => (
+                        { step: '1', label: 'Community votes', icon: '🗳️' },
+                        { step: '2', label: 'Mentor reviews', icon: '🤝' },
+                        { step: '3', label: 'AI evaluates', icon: '🤖' },
+                        { step: '4', label: 'USDT sent', icon: '💰' },
+                    ].map(({ step, label, icon }) => (
                         <div key={step} className="flex flex-col items-center text-center gap-1 p-2 rounded-xl bg-white/[0.02]">
                             <span className="text-xl">{icon}</span>
                             <span className="text-[10px] text-white/35 font-medium leading-tight">{label}</span>

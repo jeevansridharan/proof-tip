@@ -9,11 +9,13 @@ export interface Submission {
     title: string;
     description: string;
     wallet_address: string;
+    source_url?: string; // Link to GitHub/Project
     upvotes: number;
     isApproved: boolean;
     ai_score: number | null;
     reward_sent: boolean;
     created_at?: string;
+    tx_hash?: string; // Added to store reward proof
 }
 
 /**
@@ -23,6 +25,7 @@ export interface SubmitFormData {
     title: string;
     description: string;
     wallet_address: string;
+    source_url?: string;
 }
 
 /**

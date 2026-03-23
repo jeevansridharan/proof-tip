@@ -16,6 +16,7 @@ export async function createSubmission(data: SubmitFormData): Promise<Submission
                 title: data.title.trim(),
                 description: data.description.trim(),
                 wallet_address: data.wallet_address.trim(),
+                source_url: data.source_url?.trim(),
                 upvotes: 0,
                 isApproved: false,
                 ai_score: null,
@@ -79,12 +80,15 @@ export async function setAIScore(id: string, score: number): Promise<void> {
 }
 
 /**
- * Mark a submission's reward as sent.
+ * Mark a submission's reward as sent and store the TX hash.
  */
-export async function markRewardSent(id: string): Promise<void> {
+export async function markRewardSent(id: string, txHash?: string): Promise<void> {
     const { error } = await supabase
         .from('submissions')
-        .update({ reward_sent: true })
+        .update({
+            reward_sent: true,
+            tx_hash: txHash
+        })
         .eq('id', id);
 
     if (error) throw error;

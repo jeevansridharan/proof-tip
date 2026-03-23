@@ -19,17 +19,17 @@ import { supabase } from '../lib/supabase';
  */
 export function calculateTrustScore(userHistory: Submission[]): number {
     const totalSubmissions = userHistory.length;
-    
+
     // Default trust for brand new users with no history whatsoever
     if (totalSubmissions === 0) return 0.5;
 
     const successful = userHistory.filter(s => s.reward_sent).length;
-    
+
     // Default baseline for the very first submission to prevent multiplying by zero
     if (successful === 0 && totalSubmissions === 1) return 0.5;
 
     const rawTrust = successful / totalSubmissions;
-    
+
     // Ensure trust score is strictly between 0 and 1, but at least 0.1 to allow rebuilding
     return Math.max(0.1, Math.min(rawTrust, 1));
 }
@@ -54,7 +54,7 @@ export function calculateRiskScore(userHistory: Submission[], trustScore: number
 
     // Submitting >= 5 ideas in 24 hours maxes out the volume risk (1.0)
     const volumeRisk = Math.min(recentSubmissions.length / 5, 1);
-    
+
     // 2. Trust Risk: Inversely proportional to trust score
     const trustRisk = 1 - trustScore;
 
@@ -175,7 +175,7 @@ async function processSubmission(submission: Submission): Promise<void> {
 
     if (result.success) {
         console.log(`   ✅ Sent! TX: ${result.txHash}\n`);
-        await markRewardSent(submission.id);
+        await markRewardSent(submission.id, result.txHash);
     } else {
         console.error(`   ❌ Transaction failed: ${result.error}\n`);
         throw new Error(result.error ?? 'wallet.send failed');
